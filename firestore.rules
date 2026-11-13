@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function staffPath() { return /databases/$(database)/documents/staff/$(request.auth.uid); }
+    function isStaff() {
+      return signedIn() && exists(staffPath()) &&
+        get(staffPath()).data.active == true &&
+        get(staffPath()).data.role in ['admin', 'cashier'];
+    }
+    function isAdmin() { return isStaff() && get(staffPath()).data.role == 'admin'; }
+    function validDay(d) { return d in ['2026-11-14', '2026-11-15']; }
+    match /staff/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list, create, update, delete: if false;
+    }
+    match /sales/{saleId} {
+      allow read: if isStaff();
+      allow create: if isStaff()
+        && !exists(/databases/$(database)/documents/sales/$(saleId))
+        && request.resource.data.keys().hasAll(['dateKey','qty','unitPrice','total','paid','change','status','staffUid','staffName','clientTime','soldAt'])
+        && request.resource.data.keys().hasOnly(['dateKey','qty','unitPrice','total','paid','change','status','staffUid','staffName','clientTime','soldAt'])
+        && validDay(request.resource.data.dateKey)
+        && request.resource.data.qty is int
+        && request.resource.data.qty >= 1 && request.resource.data.qty <= 20
+        && request.resource.data.unitPrice == 400
+        && request.resource.data.total == request.resource.data.qty * 400
+        && request.resource.data.paid is int
+        && request.resource.data.paid >= request.resource.data.total
+        && request.resource.data.paid <= 1000000
+        && request.resource.data.change == request.resource.data.paid - request.resource.data.total
+        && request.resource.data.status == 'sale'
+        && request.resource.data.staffUid == request.auth.uid
+        && request.resource.data.staffName is string
+        && request.resource.data.staffName.size() <= 80
+        && request.resource.data.clientTime is string
+        && request.resource.data.clientTime.size() <= 40
+        && request.resource.data.soldAt == request.time;
+      allow update: if isAdmin()
+        && resource.data.status == 'sale'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','voidedBy','voidedAt'])
+        && request.resource.data.status == 'void'
+        && request.resource.data.voidedBy == request.auth.uid
+        && request.resource.data.voidedAt == request.time;
+      allow delete: if false;
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
