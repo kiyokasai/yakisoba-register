@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#142c40">
   <meta name="robots" content="noindex,nofollow">
   <title>清花祭2026 | 焼きそば・ご飯レジ</title>
-  <link rel="stylesheet" href="style.css?v=2.0.0">
+  <link rel="stylesheet" href="style.css?v=3.0.0">
 </head>
 <body>
   <header class="topbar">
@@ -35,14 +35,13 @@
       <nav class="nav" aria-label="レジの画面">
         <button class="nav-btn is-active" data-view="register" type="button">レジ</button>
         <button class="nav-btn" data-view="history" type="button">履歴</button>
-        <button class="nav-btn" data-view="dashboard" type="button">集計・設定</button>
       </nav>
       <section id="register" class="view register" aria-label="レジ"><div id="pendingBanner" class="pending-banner hidden"><strong>保存未確認の会計があります</strong><span>重複登録を防ぐため、先に状態を確認してください。</span><button id="checkPending" class="button primary" type="button">保存状態を確認する</button></div>
         <div id="pickStep" class="step-pane">
-          <div class="compact-title"><strong>商品を選択</strong><label class="day-select" for="saleDay"><span>販売日</span><select id="saleDay"><option value="2026-11-14">11/14（土）</option><option value="2026-11-15">11/15（日）</option></select></label></div>
+          <div class="compact-title"><strong>商品を選択</strong><span class="auto-time-label"><span>日時自動記録</span><time id="autoDatetime" aria-label="日本時間">--/-- --:--:--</time></span></div>
           <div class="item-list">
             <article class="item-card"><div class="item-info"><div class="item-emoji" aria-hidden="true">🍜</div><div><strong>焼きそば</strong><span>1食 400円</span></div></div><div class="stepper"><button id="yMinus" type="button" aria-label="焼きそばを1食減らす">−</button><output id="yQty" aria-live="polite">0</output><button id="yPlus" type="button" aria-label="焼きそばを1食増やす">＋</button></div></article>
-            <article class="item-card"><div class="item-info"><div class="item-emoji" aria-hidden="true">🍚</div><div><strong>ご飯</strong><span id="ricePriceLabel">価格読み込み中</span></div></div><div class="stepper"><button id="rMinus" type="button" aria-label="ご飯を1食減らす">−</button><output id="rQty" aria-live="polite">0</output><button id="rPlus" type="button" aria-label="ご飯を1食増やす">＋</button></div></article>
+            <article class="item-card"><div class="item-info"><div class="item-emoji" aria-hidden="true">🍚</div><div><strong>ご飯</strong><span id="ricePriceLabel">価格読み込み中</span><button class="price-open hidden" id="priceOpen" type="button">単価設定</button></div></div><div class="stepper"><button id="rMinus" type="button" aria-label="ご飯を1食減らす">−</button><output id="rQty" aria-live="polite">0</output><button id="rPlus" type="button" aria-label="ご飯を1食増やす">＋</button></div></article>
           </div>
           <div class="summary-line"><span>合計 <small id="itemsCount">0点</small></span><strong id="pickTotal">¥0</strong></div>
           <div class="bottom-area"><p id="pickError" class="inline-error" role="alert"></p><button id="goPayment" class="button primary big" type="button">支払いへ <span aria-hidden="true">→</span></button></div>
@@ -65,18 +64,12 @@
         <div class="history-list" id="historyList" aria-live="polite"></div>
         <div class="paging"><button id="prevPage" type="button">← 前へ</button><span id="pageInfo">0 / 0</span><button id="nextPage" type="button">次へ →</button></div>
       </section>
-      <section id="dashboard" class="view screen hidden" aria-label="売上集計と設定">
-        <div class="screen-title"><h2>売上集計</h2><button id="exportCsv" class="text-button" type="button">CSV出力</button></div>
-        <div class="stat-grid"><div class="stat"><span>11/14 売上</span><strong id="rev14">¥0</strong></div><div class="stat"><span>11/15 売上</span><strong id="rev15">¥0</strong></div><div class="stat emphasis"><span>売上合計</span><strong id="revAll">¥0</strong></div><div class="stat"><span>有効取引</span><strong id="countAll">0件</strong></div></div>
-        <div class="sales-counts"><span>焼きそば <b id="yAll">0食</b></span><span>ご飯 <b id="rAll">0食</b></span></div>
-        <div class="goal"><div class="goal-line"><span>焼きそば目標 240食</span><strong id="remaining">残り240食</strong></div><div class="progress"><div id="progressFill"></div></div></div>
-        <div class="config-box"><div class="config-title"><strong>ご飯の販売価格</strong><span id="riceStatus">未設定</span></div><form id="priceForm" class="price-form hidden"><input id="ricePriceInput" type="number" min="1" max="1000" step="1" inputmode="numeric" placeholder="例：100" aria-label="ご飯の価格（円）"><button type="submit">保存</button></form><p id="priceError" class="inline-error" role="alert"></p><p class="hint">価格の変更は管理者のみ。変更前の会計金額は変わりません。</p></div>
-      </section>
     </div>
   </main>
+  <dialog id="priceDialog" class="dialog" aria-label="ご飯の単価設定"><h2>ご飯の単価設定</h2><p class="hint">管理者のみ変更できます。変更前の会計の金額は変わりません。</p><form id="priceForm" class="dialog-form"><label class="field-label" for="ricePriceInput">1食の価格（円）</label><input id="ricePriceInput" type="number" min="1" max="1000" step="1" inputmode="numeric" placeholder="金額を入力" required><p id="priceError" class="inline-error" role="alert"></p><div class="dialog-actions"><button id="closePriceDialog" type="button">戻る</button><button class="button primary price-save" type="submit">保存</button></div></form></dialog>
   <dialog id="voidDialog" class="dialog"><form method="dialog"><h2>この会計を取り消しますか？</h2><p id="voidDescription"></p><p class="hint">売上から差し引かれ、取消履歴が残ります。実際の返金は別途行ってください。</p><div class="dialog-actions"><button type="submit" value="no">戻る</button><button id="confirmVoid" type="submit" value="yes" class="danger">取消を確定</button></div></form></dialog>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <script src="firebase-config.js"></script>
-  <script type="module" src="app.js?v=2.0.0"></script>
+  <script type="module" src="app.js?v=3.0.0"></script>
 </body>
 </html>
