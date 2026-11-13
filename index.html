@@ -1,12 +1,82 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#16283d"><title>清花祭 | 焼きそばレジ</title><link rel="stylesheet" href="style.css"></head>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#142c40">
+  <meta name="robots" content="noindex,nofollow">
+  <title>清花祭2026 | 焼きそば・ご飯レジ</title>
+  <link rel="stylesheet" href="style.css?v=2.0.0">
+</head>
 <body>
-<header class="top"><div><div class="eyebrow">KIYOKASAI 2026 / FOOD STALL</div><h1>焼きそばレジ <span>● <span id="connection">準備中</span></span></h1></div><button id="logout" class="ghost hidden">ログアウト</button></header>
-<main>
-<section id="setup" class="panel hidden"><h2>初期設定が必要です</h2><p>firebase-config.js に Firebase の設定情報を入力してください。設定するまで本番の共有レジは使用できません。</p><button id="demoStart" class="secondary">この端末だけでデモを試す</button><p class="small muted">デモの記録は実際の売上になりません。端末間の同期もありません。</p></section>
-<section id="login" class="panel hidden"><h2>スタッフログイン</h2><p class="muted">管理者から配布されたアカウントでログインしてください。</p><form id="loginForm"><label>メールアドレス<input id="email" type="email" autocomplete="username" required></label><label>パスワード<input id="password" type="password" autocomplete="current-password" required></label><button type="submit">ログイン</button></form><p id="loginError" class="error" role="alert"></p></section>
-<div id="app" class="hidden"><div class="modebar"><span id="mode"></span><span id="userLabel"></span></div><nav class="tabs" aria-label="メニュー"><button class="tab active" data-view="register">レジ</button><button class="tab" data-view="dashboard">集計</button><button class="tab" data-view="history">履歴</button></nav>
-<section id="register" class="view"><div class="metrics"><div class="metric"><span>本日の売上</span><strong id="todayRevenue">¥0</strong></div><div class="metric"><span>本日の販売数</span><strong id="todayQty">0 <small>食</small></strong></div></div><div class="panel"><div class="between"><h2>新規会計</h2><span class="price">1食 ¥400</span></div><label>販売日<select id="saleDay"><option value="2026-11-14">11月14日（土）</option><option value="2026-11-15">11月15日（日）</option></select></label><div class="qtyrow"><div><div class="muted">焼きそば</div><strong class="food">販売数量</strong></div><div class="stepper"><button id="minus" aria-label="1食減らす">−</button><output id="qty">1</output><button id="plus" aria-label="1食増やす">＋</button></div></div><div class="quick"><button data-q="1">1食</button><button data-q="2">2食</button><button data-q="3">3食</button><button data-q="5">5食</button></div><div class="total"><span>お会計</span><strong id="total">¥400</strong></div><label>お預かり金額（円）<input id="paid" type="number" min="0" step="1" inputmode="numeric" placeholder="例：1000"></label><div class="quick"><button data-cash="exact">ちょうど</button><button data-cash="1000">1,000円</button><button data-cash="2000">2,000円</button><button data-cash="5000">5,000円</button></div><div class="change"><span>お釣り</span><strong id="change">—</strong></div><p id="formError" class="error" role="alert"></p><button id="checkout" class="primary large">会計を確定する</button><p class="small muted">確定後にデータベースへ保存されます。二重タップ防止対応。</p></div><div id="lastReceipt" class="successbox hidden" role="status"></div></section>
-<section id="dashboard" class="view hidden"><div class="panel"><div class="between"><h2>リアルタイム集計</h2><button id="exportCsv" class="secondary tiny">CSV出力</button></div><div class="daygrid"><article><div>11/14（土）</div><strong id="rev14">¥0</strong><p id="qty14">0食 / 0件</p></article><article><div>11/15（日）</div><strong id="rev15">¥0</strong><p id="qty15">0食 / 0件</p></article></div><div class="summary"><span>2日間の合計売上</span><strong id="revAll">¥0</strong><span>総販売数</span><strong id="qtyAll">0食</strong><span>目標240食まで</span><strong id="remaining">240食</strong></div><div class="progress"><div id="progressFill"></div></div><p class="small muted">240食は販売目標です。在庫量を保証する数字ではありません。販売取消済みは集計から除外します。</p></div></section>
-<section id="history" class="view hidden"><div class="panel"><div class="between"><h2>取引履歴</h2><select id="historyDay" aria-label="表示日"><option value="all">両日</option><option value="2026-11-14">11/14</option><option value="2026-11-15">11/15</option></select></div><p class="small muted">取消操作は管理者のみ。削除せず取消履歴を残します。</p><div id="historyList" class="historyList"><p class="muted">取引はまだありません。</p></div></div></section></div>
-</main><footer>清花祭 2026 · 焼きそば会計管理</footer><script src="firebase-config.js"></script><script type="module" src="app.js"></script></body></html>
+  <header class="topbar">
+    <div class="brand"><span class="brand-icon" aria-hidden="true">清</span><div><div class="brand-caption">KIYOKASAI 2026</div><h1>販売レジ <small id="connection">準備中</small></h1></div></div>
+    <button id="logout" class="top-action hidden" type="button">ログアウト</button>
+  </header>
+  <main class="main">
+    <section id="setup" class="auth-card hidden" aria-labelledby="setup-title">
+      <h2 id="setup-title">初期設定が必要です</h2>
+      <p>Firebaseの接続設定がまだありません。<code>firebase-config.js</code> を設定すると、複数端末で同じ売上を管理できます。</p>
+      <button id="demoStart" class="button primary" type="button">デモを開始する</button>
+      <p class="hint">デモはこの端末だけに保存されます。本番の売上には反映されません。</p>
+    </section>
+    <section id="login" class="auth-card hidden" aria-labelledby="login-title">
+      <h2 id="login-title">スタッフログイン</h2>
+      <form id="loginForm">
+        <label class="field-label" for="email">メールアドレス</label><input id="email" type="email" autocomplete="username" required>
+        <label class="field-label" for="password">パスワード</label><input id="password" type="password" autocomplete="current-password" required>
+        <button class="button primary" type="submit">ログイン</button>
+      </form>
+      <p id="loginError" class="error" role="alert"></p>
+    </section>
+
+    <div id="app" class="app hidden">
+      <div class="statusline"><div id="mode" class="mode"></div><div id="userLabel" class="staff"></div></div>
+      <nav class="nav" aria-label="レジの画面">
+        <button class="nav-btn is-active" data-view="register" type="button">レジ</button>
+        <button class="nav-btn" data-view="history" type="button">履歴</button>
+        <button class="nav-btn" data-view="dashboard" type="button">集計・設定</button>
+      </nav>
+      <section id="register" class="view register" aria-label="レジ"><div id="pendingBanner" class="pending-banner hidden"><strong>保存未確認の会計があります</strong><span>重複登録を防ぐため、先に状態を確認してください。</span><button id="checkPending" class="button primary" type="button">保存状態を確認する</button></div>
+        <div id="pickStep" class="step-pane">
+          <div class="compact-title"><strong>商品を選択</strong><label class="day-select" for="saleDay"><span>販売日</span><select id="saleDay"><option value="2026-11-14">11/14（土）</option><option value="2026-11-15">11/15（日）</option></select></label></div>
+          <div class="item-list">
+            <article class="item-card"><div class="item-info"><div class="item-emoji" aria-hidden="true">🍜</div><div><strong>焼きそば</strong><span>1食 400円</span></div></div><div class="stepper"><button id="yMinus" type="button" aria-label="焼きそばを1食減らす">−</button><output id="yQty" aria-live="polite">0</output><button id="yPlus" type="button" aria-label="焼きそばを1食増やす">＋</button></div></article>
+            <article class="item-card"><div class="item-info"><div class="item-emoji" aria-hidden="true">🍚</div><div><strong>ご飯</strong><span id="ricePriceLabel">価格読み込み中</span></div></div><div class="stepper"><button id="rMinus" type="button" aria-label="ご飯を1食減らす">−</button><output id="rQty" aria-live="polite">0</output><button id="rPlus" type="button" aria-label="ご飯を1食増やす">＋</button></div></article>
+          </div>
+          <div class="summary-line"><span>合計 <small id="itemsCount">0点</small></span><strong id="pickTotal">¥0</strong></div>
+          <div class="bottom-area"><p id="pickError" class="inline-error" role="alert"></p><button id="goPayment" class="button primary big" type="button">支払いへ <span aria-hidden="true">→</span></button></div>
+        </div>
+        <div id="paymentStep" class="step-pane hidden">
+          <div class="compact-title"><button id="backToPick" class="text-button" type="button">← 商品選択に戻る</button><strong>お支払い</strong></div>
+          <div class="payment-overview"><div id="orderDetails">—</div><strong id="paymentTotal">¥0</strong></div>
+          <label for="paid" class="field-label">お預かり金額</label>
+          <div class="yen-input"><span>¥</span><input id="paid" type="number" min="0" step="1" inputmode="numeric" placeholder="金額を入力" autocomplete="off"></div>
+          <div class="cash-quick" aria-label="お預かり金額を設定">
+            <button type="button" data-cash="exact">ちょうど</button><button type="button" data-cash="500">500円</button><button type="button" data-cash="1000">1,000円</button><button type="button" data-cash="2000">2,000円</button><button type="button" data-cash="5000">5,000円</button><button type="button" data-cash="10000">1万円</button>
+          </div>
+          <div class="change-line"><span>お釣り</span><strong id="change">—</strong></div>
+          <div class="bottom-area"><p id="payError" class="inline-error" role="alert"></p><button id="checkout" class="button primary big" type="button">会計を確定する</button></div>
+        </div>
+        <div id="receipt" class="receipt hidden" role="status"><strong>会計を登録しました</strong><span id="receiptText"></span><button id="receiptNext" class="button primary big" type="button">次の会計へ</button></div>
+      </section>
+      <section id="history" class="view screen hidden" aria-label="取引履歴">
+        <div class="screen-title"><h2>取引履歴</h2><select id="historyDay" aria-label="販売日で絞り込む"><option value="all">全日</option><option value="2026-11-14">11/14</option><option value="2026-11-15">11/15</option></select></div>
+        <div class="history-list" id="historyList" aria-live="polite"></div>
+        <div class="paging"><button id="prevPage" type="button">← 前へ</button><span id="pageInfo">0 / 0</span><button id="nextPage" type="button">次へ →</button></div>
+      </section>
+      <section id="dashboard" class="view screen hidden" aria-label="売上集計と設定">
+        <div class="screen-title"><h2>売上集計</h2><button id="exportCsv" class="text-button" type="button">CSV出力</button></div>
+        <div class="stat-grid"><div class="stat"><span>11/14 売上</span><strong id="rev14">¥0</strong></div><div class="stat"><span>11/15 売上</span><strong id="rev15">¥0</strong></div><div class="stat emphasis"><span>売上合計</span><strong id="revAll">¥0</strong></div><div class="stat"><span>有効取引</span><strong id="countAll">0件</strong></div></div>
+        <div class="sales-counts"><span>焼きそば <b id="yAll">0食</b></span><span>ご飯 <b id="rAll">0食</b></span></div>
+        <div class="goal"><div class="goal-line"><span>焼きそば目標 240食</span><strong id="remaining">残り240食</strong></div><div class="progress"><div id="progressFill"></div></div></div>
+        <div class="config-box"><div class="config-title"><strong>ご飯の販売価格</strong><span id="riceStatus">未設定</span></div><form id="priceForm" class="price-form hidden"><input id="ricePriceInput" type="number" min="1" max="1000" step="1" inputmode="numeric" placeholder="例：100" aria-label="ご飯の価格（円）"><button type="submit">保存</button></form><p id="priceError" class="inline-error" role="alert"></p><p class="hint">価格の変更は管理者のみ。変更前の会計金額は変わりません。</p></div>
+      </section>
+    </div>
+  </main>
+  <dialog id="voidDialog" class="dialog"><form method="dialog"><h2>この会計を取り消しますか？</h2><p id="voidDescription"></p><p class="hint">売上から差し引かれ、取消履歴が残ります。実際の返金は別途行ってください。</p><div class="dialog-actions"><button type="submit" value="no">戻る</button><button id="confirmVoid" type="submit" value="yes" class="danger">取消を確定</button></div></form></dialog>
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  <script src="firebase-config.js"></script>
+  <script type="module" src="app.js?v=2.0.0"></script>
+</body>
+</html>

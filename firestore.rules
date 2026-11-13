@@ -3,45 +3,80 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
     function staffPath() { return /databases/$(database)/documents/staff/$(request.auth.uid); }
+    function menuPath() { return /databases/$(database)/documents/settings/menu; }
     function isStaff() {
       return signedIn() && exists(staffPath()) &&
         get(staffPath()).data.active == true &&
         get(staffPath()).data.role in ['admin', 'cashier'];
     }
     function isAdmin() { return isStaff() && get(staffPath()).data.role == 'admin'; }
-    function validDay(d) { return d in ['2026-11-14', '2026-11-15']; }
+    function validDay(day) { return day in ['2026-11-14', '2026-11-15']; }
+    function validRicePrice() {
+      return request.resource.data.riceQty == 0 && request.resource.data.riceUnitPrice == 0 ||
+        request.resource.data.riceQty > 0 && exists(menuPath()) &&
+        request.resource.data.riceUnitPrice == get(menuPath()).data.ricePrice;
+    }
     match /staff/{uid} {
       allow get: if signedIn() && request.auth.uid == uid;
       allow list, create, update, delete: if false;
     }
+    match /settings/{settingId} {
+      allow get: if settingId == 'menu' && isStaff();
+      allow list, delete: if false;
+      allow create, update: if settingId == 'menu' && isAdmin() &&
+        request.resource.data.keys().hasAll(['ricePrice','updatedAt','updatedBy']) &&
+        request.resource.data.keys().hasOnly(['ricePrice','updatedAt','updatedBy']) &&
+        request.resource.data.ricePrice is int &&
+        request.resource.data.ricePrice >= 1 && request.resource.data.ricePrice <= 1000 &&
+        request.resource.data.updatedAt == request.time &&
+        request.resource.data.updatedBy == request.auth.uid;
+    }
     match /sales/{saleId} {
       allow read: if isStaff();
-      allow create: if isStaff()
-        && !exists(/databases/$(database)/documents/sales/$(saleId))
-        && request.resource.data.keys().hasAll(['dateKey','qty','unitPrice','total','paid','change','status','staffUid','staffName','clientTime','soldAt'])
-        && request.resource.data.keys().hasOnly(['dateKey','qty','unitPrice','total','paid','change','status','staffUid','staffName','clientTime','soldAt'])
-        && validDay(request.resource.data.dateKey)
-        && request.resource.data.qty is int
-        && request.resource.data.qty >= 1 && request.resource.data.qty <= 20
-        && request.resource.data.unitPrice == 400
-        && request.resource.data.total == request.resource.data.qty * 400
-        && request.resource.data.paid is int
-        && request.resource.data.paid >= request.resource.data.total
-        && request.resource.data.paid <= 1000000
-        && request.resource.data.change == request.resource.data.paid - request.resource.data.total
-        && request.resource.data.status == 'sale'
-        && request.resource.data.staffUid == request.auth.uid
-        && request.resource.data.staffName is string
-        && request.resource.data.staffName.size() <= 80
-        && request.resource.data.clientTime is string
-        && request.resource.data.clientTime.size() <= 40
-        && request.resource.data.soldAt == request.time;
-      allow update: if isAdmin()
-        && resource.data.status == 'sale'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','voidedBy','voidedAt'])
-        && request.resource.data.status == 'void'
-        && request.resource.data.voidedBy == request.auth.uid
-        && request.resource.data.voidedAt == request.time;
+      allow create: if isStaff() &&
+        request.resource.data.keys().hasAll([
+          'dateKey','yakisobaQty','riceQty','yakisobaUnitPrice','riceUnitPrice',
+          'total','paid','change','status','staffUid','staffName','clientTime','soldAt'
+        ]) &&
+        request.resource.data.keys().hasOnly([
+          'dateKey','yakisobaQty','riceQty','yakisobaUnitPrice','riceUnitPrice',
+          'total','paid','change','status','staffUid','staffName','clientTime','soldAt'
+        ]) &&
+        validDay(request.resource.data.dateKey) &&
+        request.resource.data.yakisobaQty is int &&
+        request.resource.data.riceQty is int &&
+        request.resource.data.yakisobaQty >= 0 && request.resource.data.yakisobaQty <= 30 &&
+        request.resource.data.riceQty >= 0 && request.resource.data.riceQty <= 30 &&
+        request.resource.data.yakisobaQty + request.resource.data.riceQty >= 1 &&
+        request.resource.data.yakisobaQty + request.resource.data.riceQty <= 60 &&
+        request.resource.data.yakisobaUnitPrice == 400 &&
+        request.resource.data.riceUnitPrice is int &&
+        validRicePrice() &&
+        request.resource.data.total ==
+          request.resource.data.yakisobaQty * 400 +
+          request.resource.data.riceQty * request.resource.data.riceUnitPrice &&
+        request.resource.data.paid is int &&
+        request.resource.data.paid >= request.resource.data.total &&
+        request.resource.data.paid <= 1000000 &&
+        request.resource.data.change == request.resource.data.paid - request.resource.data.total &&
+        request.resource.data.status == 'sale' &&
+        request.resource.data.staffUid == request.auth.uid &&
+        request.resource.data.staffName is string &&
+        request.resource.data.staffName.size() <= 80 &&
+        request.resource.data.clientTime is string &&
+        request.resource.data.clientTime.size() <= 40 &&
+        request.resource.data.soldAt == request.time;
+      // 会計担当は自分の取引だけを取消可能。管理者は全スタッフ分を取消可能。
+      // 元データを消さず、statusだけを「void」に切り替えます。
+      allow update: if isStaff() &&
+        (isAdmin() || resource.data.staffUid == request.auth.uid) &&
+        resource.data.status == 'sale' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status','voidedBy','voidedAt'
+        ]) &&
+        request.resource.data.status == 'void' &&
+        request.resource.data.voidedBy == request.auth.uid &&
+        request.resource.data.voidedAt == request.time;
       allow delete: if false;
     }
     match /{document=**} { allow read, write: if false; }
